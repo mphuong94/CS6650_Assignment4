@@ -81,8 +81,8 @@ public class ConsumerThread implements Runnable {
             String waitTimeInfo = concatInfo("waitTime",waitTime);
             String verticalInfo = concatInfo("vertical",strVertical);
             String resortIdInfo = concatInfo("resortId",resortId);
-            String dayIdInfo = concatInfo("dayId",dayId);
             String seasonIdInfo = concatInfo("seasonId",seasonId);
+            String dayIdInfo = concatInfo("dayId",dayId);
             output.append("/");
             output.append(liftIdInfo);
             output.append(minuteInfo);

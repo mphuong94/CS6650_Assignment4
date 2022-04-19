@@ -10,6 +10,7 @@ import com.google.gson.GsonBuilder;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisException;
 import util.ChannelFactory;
 import util.LiftInfo;
 
@@ -33,10 +34,10 @@ public class SkierServlet extends HttpServlet {
     private static String QUEUE_NAME_SKIER = "skier";
     private static String QUEUE_NAME_RESORT = "resort";
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String RABBIT_HOST = "35.88.199.92";
+    private static final String RABBIT_HOST = "35.88.165.207";
     private static final String userName = "guest1";
     private static final String password = "guest1";
-    private static final String redisHost = "34.219.14.13";
+    private static final String redisHost = "52.27.132.138";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
@@ -91,18 +92,29 @@ public class SkierServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         } else {
             response.setStatus(HttpServletResponse.SC_OK);
-            Jedis jedis = jedisPool.getResource();
-
+        }
+        Jedis jedis = jedisPool.getResource();
+        String skierId = urlParts[7];
+        try {
+            String currenInfo = jedis.get(skierId);
+            String[] infoSplit = currenInfo.split("/");
             if (urlParts.length == 8 && urlParts[6]=="skiers"){
-                String skierId = urlParts[7];
-                String currenInfo = jedis.get(skierId);
-                response.getWriter().write(currenInfo);
+                String resortId = urlParts[1];
+                String seasonId = urlParts[3];
+                String dayId = urlParts[5];
+
+                StringBuilder infoOutput = new StringBuilder();
+                for (String s: infoSplit){
+                    String[] record = s.split(" ");
+                    if (record[9] == resortId && record[11]==seasonId && record[13]==dayId){
+                        infoOutput.append(s);
+                        infoOutput.append(" ");
+                    }
+                }
+                response.getWriter().write(infoOutput.toString());
                 return;
             }
             if (urlParts.length == 3 && urlParts[2]=="vertical"){
-                String skierId = urlParts[7];
-                String currenInfo = jedis.get(skierId);
-                String[] infoSplit = urlPath.split("/");
                 StringBuilder verticalOutput = new StringBuilder();
                 for (String s: infoSplit){
                     String[] record = s.split(" ");
@@ -112,8 +124,19 @@ public class SkierServlet extends HttpServlet {
                 response.getWriter().write(verticalOutput.toString());
                 return;
             }
-
+        } catch (JedisException e) {
+            // return to pool if needed
+            if (null != jedis) {
+                jedisPool.returnBrokenResource(jedis);
+                jedis = null;
+            }
+        } finally {
+            // return to pool after finishing
+            if (null != jedis)
+                jedisPool.returnResource(jedis);
         }
+
+
     }
 
     @Override
