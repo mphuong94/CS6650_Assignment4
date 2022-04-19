@@ -1,0 +1,228 @@
+import com.rabbitmq.client.BuiltinExchangeType;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+import util.ChannelFactory;
+import util.LiftInfo;
+
+import javax.servlet.*;
+import javax.servlet.http.*;
+import javax.servlet.annotation.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@WebServlet(name = "SkierServlet", value = "/SkierServlet")
+public class SkierServlet extends HttpServlet {
+    public static ConnectionFactory factory;
+    public static ObjectPool<Channel> pool;
+    public GsonBuilder builder;
+    public Gson gson;
+    private static String QUEUE_NAME_SKIER = "skier";
+    private static String QUEUE_NAME_RESORT = "resort";
+    final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
+    private static final String RABBIT_HOST = "35.88.199.92";
+    private static final String userName = "guest1";
+    private static final String password = "guest1";
+    private static final String redisHost = "34.219.14.13";
+    private static final Integer redisPort = 6379;
+    private static JedisPool jedisPool = null;
+    static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+
+    @Override
+    public void init() {
+        factory = new ConnectionFactory();
+        factory.setHost(RABBIT_HOST);
+        factory.setUsername(userName);
+        factory.setPassword(password);
+        try {
+            Connection newConn = factory.newConnection();
+            GenericObjectPoolConfig<Channel> config = new GenericObjectPoolConfig<>();
+            config.setMaxTotal(500);
+            config.setMinIdle(100);
+            config.setMaxIdle(200);
+            pool = new GenericObjectPool<>(new ChannelFactory(newConn), config);
+
+            jedisPoolConfig.setMaxTotal(1000);
+            jedisPool = new JedisPool(jedisPoolConfig,redisHost, redisPort);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+        gson = builder.create();
+    }
+
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/plain");
+        String urlPath = request.getPathInfo();
+
+        // check we have a URL!
+        if (urlPath == null || urlPath.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("missing parameters");
+            return;
+        }
+
+        String[] urlParts = urlPath.split("/");
+        // and now validate url path and return the response status code
+        // (and maybe also some value if input is valid)
+
+        if (!validateGet(urlParts)) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        } else {
+            response.setStatus(HttpServletResponse.SC_OK);
+            Jedis jedis = jedisPool.getResource();
+
+            if (urlParts.length == 8 && urlParts[6]=="skiers"){
+                String skierId = urlParts[7];
+                String currenInfo = jedis.get(skierId);
+                response.getWriter().write(currenInfo);
+                return;
+            }
+            if (urlParts.length == 3 && urlParts[2]=="vertical"){
+                String skierId = urlParts[7];
+                String currenInfo = jedis.get(skierId);
+                String[] infoSplit = urlPath.split("/");
+                StringBuilder verticalOutput = new StringBuilder();
+                for (String s: infoSplit){
+                    String[] record = s.split(" ");
+                    verticalOutput.append(record[7]);
+                    verticalOutput.append(" ");
+                }
+                response.getWriter().write(verticalOutput.toString());
+                return;
+            }
+
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/plain");
+        String urlPath = request.getPathInfo();
+        logger.log(Level.INFO,urlPath);
+        // check we have a URL!
+        if (urlPath == null || urlPath.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("missing parameters");
+            return;
+        }
+        if (!validatePost(request)) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        } else {
+            logger.log(Level.INFO, request.getParameter("skier_id"));
+            int skierId = Integer.parseInt(request.getParameter("skier_id"));
+            int liftId = Integer.parseInt(request.getParameter("lift_id"));
+            int minute = Integer.parseInt(request.getParameter("minute"));
+            int waitTime = Integer.parseInt(request.getParameter("wait"));
+            int resortId = Integer.parseInt(request.getParameter("resort_id"));
+            int dayId = Integer.parseInt(request.getParameter("day_id"));
+            int seasonId = Integer.parseInt(request.getParameter("season_id"));
+            LiftInfo newInfo = new LiftInfo(skierId,liftId,minute,waitTime, resortId, dayId, seasonId);
+            try {
+                Channel channel = pool.borrowObject();
+                String jsonString = gson.toJson(newInfo);
+                channel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
+                channel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
+                channel.basicPublish("", QUEUE_NAME_SKIER, null, jsonString.getBytes("UTF-8"));
+                channel.basicPublish("", QUEUE_NAME_RESORT, null, jsonString.getBytes("UTF-8"));
+                pool.returnObject(channel);
+                response.setStatus(HttpServletResponse.SC_CREATED);
+                response.getWriter().write("It works post!");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private boolean validateGet(String[] urlPath) {
+        // urlPath  = "/1/seasons/2019/day/1/skier/123"
+        // urlParts = [, 1, seasons, 2019, day, 1, skier, 123]
+        if (urlPath.length == 8 || urlPath.length == 3  ){
+            return true;
+        }
+        return false;
+    }
+
+    private boolean validatePost(HttpServletRequest request) {
+//        logger.log(Level.INFO, request.getParameter("skiers_ids"));
+        Map paramsSupplied = request.getParameterMap();
+        if (paramsSupplied.containsKey("skier_id")){
+            if (Integer.parseInt(request.getParameter("skier_id")) > 100000){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("lift_id")){
+            if (Integer.parseInt(request.getParameter("lift_id")) > 60){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("minute")){
+            if (Integer.parseInt(request.getParameter("minute")) > 420){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("wait")){
+            if (Integer.parseInt(request.getParameter("wait")) > 10){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("resort_id")){
+            if (Integer.parseInt(request.getParameter("resort_id")) > 4){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("day_id")){
+            if (Integer.parseInt(request.getParameter("day_id")) > 30){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        if (paramsSupplied.containsKey("season_id")){
+            if (Integer.parseInt(request.getParameter("season_id")) > 4){
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        return true;
+    }
+}
