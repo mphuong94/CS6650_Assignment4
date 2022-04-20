@@ -9,10 +9,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    private static final String rabbitHost = "35.88.165.207";
+    private static String rabbitHost = "35.88.165.207";
     private static final String userName = "guest1";
     private static final String password = "guest1";
-    private static final String redisHost = "52.27.132.138";
+    private static String redisHost = "52.27.132.138";
     private static final Integer redisPort = 6379;
     private static JedisPool pool = null;
     static int numThread = 32;
@@ -45,6 +45,18 @@ public class Main {
             }
         } else {
             throw new IllegalArgumentException("Missing --numThread arguments");
+        }
+
+        if (params.containsKey("--urlRabbit")) {
+            rabbitHost = params.get("--urlRabbit");
+        } else {
+            throw new IllegalArgumentException("Missing --urlRabbit arguments");
+        }
+
+        if (params.containsKey("--urlRedis")) {
+            redisHost = params.get("--urlRedis");
+        } else {
+            throw new IllegalArgumentException("Missing --urlRedis arguments");
         }
 
         try {

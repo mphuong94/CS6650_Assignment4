@@ -23,7 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @WebServlet(name = "ResortServlet", value = "/ResortServlet")
-public class SkierServlet extends HttpServlet {
+public class ResortServlet extends HttpServlet {
     public static ConnectionFactory factory;
     public static ObjectPool<Channel> pool;
     public GsonBuilder builder;
