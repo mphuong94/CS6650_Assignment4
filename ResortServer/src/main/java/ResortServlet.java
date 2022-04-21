@@ -41,31 +41,8 @@ public class ResortServlet extends HttpServlet {
 
     @Override
     public void init() {
-        factory = new ConnectionFactory();
-        factory.setHost(RABBIT_HOST);
-        factory.setUsername(userName);
-        factory.setPassword(password);
-        try {
-            Connection newConn = factory.newConnection();
-            GenericObjectPoolConfig<Channel> config = new GenericObjectPoolConfig<>();
-            config.setMaxTotal(500);
-            config.setMinIdle(100);
-            config.setMaxIdle(200);
-            pool = new GenericObjectPool<>(new ChannelFactory(newConn), config);
-
-            jedisPoolConfig.setMaxTotal(1000);
-            jedisPool = new JedisPool(jedisPoolConfig,redisHost, redisPort);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        builder = new GsonBuilder();
-        builder.setPrettyPrinting();
-        gson = builder.create();
+        jedisPoolConfig.setMaxTotal(1000);
+        jedisPool = new JedisPool(jedisPoolConfig,redisHost, redisPort);
     }
 
 
@@ -106,7 +83,18 @@ public class ResortServlet extends HttpServlet {
                 response.getWriter().write("No record found");
             }
             else {
-                response.getWriter().write(currenInfo);
+                StringBuilder infoOutput = new StringBuilder();
+                infoOutput.append("Resort Id ");
+                infoOutput.append(resortId);
+                infoOutput.append("-");
+                infoOutput.append("Season Id ");
+                infoOutput.append(seasonId);
+                infoOutput.append("-");
+                infoOutput.append("Day Id ");
+                infoOutput.append(dayId);
+                infoOutput.append(":");
+                infoOutput.append(currenInfo);
+                response.getWriter().write(infoOutput.toString());
             }
         } catch (JedisException e) {
             // return to pool if needed

@@ -95,7 +95,13 @@ public class SkierServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_OK);
         }
         Jedis jedis = jedisPool.getResource();
-        String skierId = urlParts[7];
+
+        String skierId = null;
+        if (urlParts.length==8){
+            skierId = urlParts[7];
+        } else if (urlParts.length==3){
+            skierId = urlParts[1];
+        }
         try {
             String currenInfo = jedis.get(skierId);
             if (currenInfo == null){
@@ -103,31 +109,57 @@ public class SkierServlet extends HttpServlet {
             }
             else {
                 String[] infoSplit = currenInfo.split(" / ");
-                System.out.println(Arrays.toString(infoSplit));
-                if (urlParts.length == 8 && urlParts[6]=="skiers"){
+                if (urlParts.length == 8){
                     String resortId = urlParts[1];
                     String seasonId = urlParts[3];
                     String dayId = urlParts[5];
 
                     StringBuilder infoOutput = new StringBuilder();
-                    for (String s: infoSplit){
-                        System.out.println(s.toString());
-                        String[] record = s.split(" ");
-                        if (record[9] == resortId && record[11]==seasonId && record[13]==dayId){
-                            infoOutput.append(s);
-                            infoOutput.append(" ");
+                    infoOutput.append(skierId);
+                    infoOutput.append(":");
+
+                    for (String record: infoSplit){
+                        String[] detail = record.split(" ");
+                        String resortIdFound = null;
+                        String seasonIdFound = null;
+                        String dayIdFound = null;
+                        for (int i = 0; i < detail.length; i++) {
+                            if (detail[i].equals("resortId")) {
+                                resortIdFound = detail[i+1];
+                            }
+                            if (detail[i].equals("seasonId")) {
+                                seasonIdFound = detail[i+1];
+                            }
+                            if (detail[i].equals("dayId")) {
+                                dayIdFound = detail[i+1];
+                            }
+                        }
+
+                        if (resortIdFound.equals(resortId) && seasonIdFound.equals(seasonId) && dayIdFound.equals(dayId)){
+                            infoOutput.append(record);
+                            infoOutput.append("/");
                         }
                     }
-
-                    System.out.println(infoOutput.toString());
-                    response.getWriter().write(infoOutput.toString());
+                    if (infoOutput.toString().length() > 0){
+                    response.getWriter().write(infoOutput.toString());}
+                    else{
+                        response.getWriter().write("Skier ID found but no match for resort,season and day ID");
+                    }
                 }
-                if (urlParts.length == 3 && urlParts[2]=="vertical"){
+                //vertical path
+                else if (urlParts.length == 3){
                     StringBuilder verticalOutput = new StringBuilder();
-                    for (String s: infoSplit){
-                        String[] record = s.split(" ");
-                        verticalOutput.append(record[7]);
-                        verticalOutput.append(" ");
+                    verticalOutput.append(skierId);
+                    verticalOutput.append(":");
+
+                    for (String record: infoSplit){
+                        String[] detail = record.split(" ");
+                        for (int i = 0; i < detail.length; i++) {
+                            if (detail[i].equals("vertical")) {
+                                verticalOutput.append(detail[i+1]);
+                                verticalOutput.append(" ");
+                            }
+                        }
                     }
                     response.getWriter().write(verticalOutput.toString());
                 }
@@ -190,7 +222,6 @@ public class SkierServlet extends HttpServlet {
     private boolean validateGet(String[] urlPath) {
         // urlPath  = "/1/seasons/2019/day/1/skier/123"
         // urlParts = [, 1, seasons, 2019, day, 1, skier, 123]
-        System.out.println(urlPath);
         if (urlPath.length == 8 || urlPath.length == 3  ){
             return true;
         }
