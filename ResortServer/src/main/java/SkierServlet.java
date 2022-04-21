@@ -34,10 +34,10 @@ public class SkierServlet extends HttpServlet {
     private static String QUEUE_NAME_SKIER = "skier";
     private static String QUEUE_NAME_RESORT = "resort";
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String RABBIT_HOST = "35.88.165.207";
+    private static final String RABBIT_HOST = "52.24.41.153";
     private static final String userName = "guest1";
     private static final String password = "guest1";
-    private static final String redisHost = "52.27.132.138";
+    private static final String redisHost = "54.202.114.117";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
@@ -192,6 +192,7 @@ public class SkierServlet extends HttpServlet {
         Map paramsSupplied = request.getParameterMap();
         if (paramsSupplied.containsKey("skier_id")){
             if (Integer.parseInt(request.getParameter("skier_id")) > 100000){
+                System.out.println("skier id wrong");
                 return false;
             }
         }
@@ -200,6 +201,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("lift_id")){
             if (Integer.parseInt(request.getParameter("lift_id")) > 60){
+                System.out.println("lift id wrong");
                 return false;
             }
         }
@@ -208,6 +210,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("minute")){
             if (Integer.parseInt(request.getParameter("minute")) > 420){
+                System.out.println("minute wrong");
                 return false;
             }
         }
@@ -216,6 +219,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("wait")){
             if (Integer.parseInt(request.getParameter("wait")) > 10){
+                System.out.println("wait wrong");
                 return false;
             }
         }
@@ -224,6 +228,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("resort_id")){
             if (Integer.parseInt(request.getParameter("resort_id")) > 4){
+                System.out.println("resort id wrong");
                 return false;
             }
         }
@@ -232,6 +237,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("day_id")){
             if (Integer.parseInt(request.getParameter("day_id")) > 30){
+                System.out.println("day id wrong");
                 return false;
             }
         }
@@ -240,6 +246,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (paramsSupplied.containsKey("season_id")){
             if (Integer.parseInt(request.getParameter("season_id")) > 4){
+                System.out.println("season id wrong");
                 return false;
             }
         }

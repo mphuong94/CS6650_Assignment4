@@ -61,7 +61,7 @@ public class PostConnection {
         urlParameters.add(new BasicNameValuePair("lift_id", this.liftInfo.getLiftId().toString()));
         urlParameters.add(new BasicNameValuePair("minute", this.liftInfo.getMinute().toString()));
         urlParameters.add(new BasicNameValuePair("wait", this.liftInfo.getWaitTime().toString()));
-        urlParameters.add(new BasicNameValuePair("resort_id", this.liftInfo.getLiftId().toString()));
+        urlParameters.add(new BasicNameValuePair("resort_id", this.liftInfo.getResortId().toString()));
         urlParameters.add(new BasicNameValuePair("day_id", this.liftInfo.getDayId().toString()));
         urlParameters.add(new BasicNameValuePair("season_id", this.liftInfo.getSeasonId().toString()));
 
