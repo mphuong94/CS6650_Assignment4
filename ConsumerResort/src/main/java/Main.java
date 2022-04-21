@@ -2,6 +2,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,13 +16,9 @@ public class Main {
     private static final Integer redisPort = 6379;
     private static JedisPool pool = null;
     static int numThread = 32;
+    static JedisPoolConfig poolConfig = new JedisPoolConfig();
 
     public static void main(String[] args) {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(rabbitHost);
-        factory.setUsername(userName);
-        factory.setPassword(password);
-        pool = new JedisPool(redisHost, redisPort);
 
         if (args.length == 0) {
             throw new IllegalArgumentException("Some arguments are missing values");
@@ -54,6 +51,13 @@ public class Main {
         } else {
             throw new IllegalArgumentException("Missing --urlRedis arguments");
         }
+
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(rabbitHost);
+        factory.setUsername(userName);
+        factory.setPassword(password);
+        poolConfig.setMaxTotal(1000);
+        pool = new JedisPool(poolConfig,redisHost, redisPort);
 
         try {
             Connection newConnection = factory.newConnection();

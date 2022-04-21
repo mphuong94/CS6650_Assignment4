@@ -20,13 +20,6 @@ public class Main {
 
 
     public static void main(String[] args) {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(rabbitHost);
-        factory.setUsername(userName);
-        factory.setPassword(password);
-        poolConfig.setMaxTotal(1000);
-        pool = new JedisPool(poolConfig,redisHost, redisPort);
-
         if (args.length == 0) {
             throw new IllegalArgumentException("Some arguments are missing values");
         }
@@ -58,6 +51,13 @@ public class Main {
         } else {
             throw new IllegalArgumentException("Missing --urlRedis arguments");
         }
+
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(rabbitHost);
+        factory.setUsername(userName);
+        factory.setPassword(password);
+        poolConfig.setMaxTotal(1000);
+        pool = new JedisPool(poolConfig,redisHost, redisPort);
 
         try {
             Connection newConnection = factory.newConnection();
