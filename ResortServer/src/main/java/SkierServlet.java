@@ -19,6 +19,7 @@ import javax.servlet.http.*;
 import javax.servlet.annotation.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -97,33 +98,41 @@ public class SkierServlet extends HttpServlet {
         String skierId = urlParts[7];
         try {
             String currenInfo = jedis.get(skierId);
-            String[] infoSplit = currenInfo.split("/");
-            if (urlParts.length == 8 && urlParts[6]=="skiers"){
-                String resortId = urlParts[1];
-                String seasonId = urlParts[3];
-                String dayId = urlParts[5];
+            if (currenInfo == null){
+                response.getWriter().write("No record found");
+            }
+            else {
+                String[] infoSplit = currenInfo.split(" / ");
+                System.out.println(Arrays.toString(infoSplit));
+                if (urlParts.length == 8 && urlParts[6]=="skiers"){
+                    String resortId = urlParts[1];
+                    String seasonId = urlParts[3];
+                    String dayId = urlParts[5];
 
-                StringBuilder infoOutput = new StringBuilder();
-                for (String s: infoSplit){
-                    String[] record = s.split(" ");
-                    if (record[9] == resortId && record[11]==seasonId && record[13]==dayId){
-                        infoOutput.append(s);
-                        infoOutput.append(" ");
+                    StringBuilder infoOutput = new StringBuilder();
+                    for (String s: infoSplit){
+                        System.out.println(s.toString());
+                        String[] record = s.split(" ");
+                        if (record[9] == resortId && record[11]==seasonId && record[13]==dayId){
+                            infoOutput.append(s);
+                            infoOutput.append(" ");
+                        }
                     }
+
+                    System.out.println(infoOutput.toString());
+                    response.getWriter().write(infoOutput.toString());
                 }
-                response.getWriter().write(infoOutput.toString());
-                return;
-            }
-            if (urlParts.length == 3 && urlParts[2]=="vertical"){
-                StringBuilder verticalOutput = new StringBuilder();
-                for (String s: infoSplit){
-                    String[] record = s.split(" ");
-                    verticalOutput.append(record[7]);
-                    verticalOutput.append(" ");
+                if (urlParts.length == 3 && urlParts[2]=="vertical"){
+                    StringBuilder verticalOutput = new StringBuilder();
+                    for (String s: infoSplit){
+                        String[] record = s.split(" ");
+                        verticalOutput.append(record[7]);
+                        verticalOutput.append(" ");
+                    }
+                    response.getWriter().write(verticalOutput.toString());
                 }
-                response.getWriter().write(verticalOutput.toString());
-                return;
             }
+
         } catch (JedisException e) {
             // return to pool if needed
             if (null != jedis) {
@@ -134,6 +143,7 @@ public class SkierServlet extends HttpServlet {
             // return to pool after finishing
             if (null != jedis)
                 jedisPool.returnResource(jedis);
+            return;
         }
 
 
@@ -143,7 +153,6 @@ public class SkierServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/plain");
         String urlPath = request.getPathInfo();
-        logger.log(Level.INFO,urlPath);
         // check we have a URL!
         if (urlPath == null || urlPath.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -181,6 +190,7 @@ public class SkierServlet extends HttpServlet {
     private boolean validateGet(String[] urlPath) {
         // urlPath  = "/1/seasons/2019/day/1/skier/123"
         // urlParts = [, 1, seasons, 2019, day, 1, skier, 123]
+        System.out.println(urlPath);
         if (urlPath.length == 8 || urlPath.length == 3  ){
             return true;
         }

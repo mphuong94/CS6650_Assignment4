@@ -102,8 +102,12 @@ public class ResortServlet extends HttpServlet {
         keyQuery.append(dayId);
         try {
             String currenInfo = jedis.get(keyQuery.toString());
-            response.getWriter().write(currenInfo);
-            return;
+            if (currenInfo == null){
+                response.getWriter().write("No record found");
+            }
+            else {
+                response.getWriter().write(currenInfo);
+            }
         } catch (JedisException e) {
             // return to pool if needed
             if (null != jedis) {
@@ -114,6 +118,7 @@ public class ResortServlet extends HttpServlet {
             // return to pool after finishing
             if (null != jedis)
                 jedisPool.returnResource(jedis);
+            return;
         }
 
 
