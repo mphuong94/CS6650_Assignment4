@@ -1,40 +1,18 @@
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
-import util.ChannelFactory;
-import util.LiftInfo;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.servlet.annotation.*;
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @WebServlet(name = "ResortServlet", value = "/ResortServlet")
 public class ResortServlet extends HttpServlet {
-    public static ConnectionFactory factory;
-    public static ObjectPool<Channel> pool;
-    public GsonBuilder builder;
-    public Gson gson;
-    private static String QUEUE_NAME_SKIER = "skier";
-    private static String QUEUE_NAME_RESORT = "resort";
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String RABBIT_HOST = "52.24.41.153";
-    private static final String userName = "guest1";
-    private static final String password = "guest1";
-    private static final String redisHost = "54.202.114.117";
+    private static final String redisHost = "34.221.248.240";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();

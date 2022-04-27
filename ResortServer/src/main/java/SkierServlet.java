@@ -1,4 +1,3 @@
-import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -18,9 +17,6 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.servlet.annotation.*;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -32,13 +28,14 @@ public class SkierServlet extends HttpServlet {
     public static ObjectPool<Channel> pool;
     public GsonBuilder builder;
     public Gson gson;
+    private static String EXCHANGE_NAME = "postRequest";
     private static String QUEUE_NAME_SKIER = "skier";
     private static String QUEUE_NAME_RESORT = "resort";
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String RABBIT_HOST = "52.24.41.153";
+    private static final String RABBIT_HOST = "34.210.78.52";
     private static final String userName = "guest1";
     private static final String password = "guest1";
-    private static final String redisHost = "54.202.114.117";
+    private static final String REDIS_HOST = "18.236.213.5";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
@@ -56,9 +53,16 @@ public class SkierServlet extends HttpServlet {
             config.setMinIdle(100);
             config.setMaxIdle(200);
             pool = new GenericObjectPool<>(new ChannelFactory(newConn), config);
+            Channel initChannel = newConn.createChannel();
+            initChannel.exchangeDeclare("postRequest", "fanout");
+            initChannel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
+            initChannel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
+            initChannel.queueBind(QUEUE_NAME_RESORT, EXCHANGE_NAME, "");
+            initChannel.queueBind(QUEUE_NAME_SKIER, EXCHANGE_NAME, "");
+            initChannel.close();
 
             jedisPoolConfig.setMaxTotal(1000);
-            jedisPool = new JedisPool(jedisPoolConfig,redisHost, redisPort);
+            jedisPool = new JedisPool(jedisPoolConfig,REDIS_HOST, redisPort);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
@@ -193,6 +197,7 @@ public class SkierServlet extends HttpServlet {
         }
         if (!validatePost(request)) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            System.out.println("fail validate");
         } else {
             logger.log(Level.INFO, request.getParameter("skier_id"));
             int skierId = Integer.parseInt(request.getParameter("skier_id"));
@@ -206,10 +211,12 @@ public class SkierServlet extends HttpServlet {
             try {
                 Channel channel = pool.borrowObject();
                 String jsonString = gson.toJson(newInfo);
-                channel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
-                channel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
-                channel.basicPublish("", QUEUE_NAME_SKIER, null, jsonString.getBytes("UTF-8"));
-                channel.basicPublish("", QUEUE_NAME_RESORT, null, jsonString.getBytes("UTF-8"));
+//                channel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
+//                channel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
+//                channel.basicPublish("", QUEUE_NAME_SKIER, null, jsonString.getBytes("UTF-8"));
+//                channel.basicPublish("", QUEUE_NAME_RESORT, null, jsonString.getBytes("UTF-8"));
+
+                channel.basicPublish(EXCHANGE_NAME, "", null, jsonString.getBytes("UTF-8"));
                 pool.returnObject(channel);
                 response.setStatus(HttpServletResponse.SC_CREATED);
                 response.getWriter().write("It works post!");
@@ -237,63 +244,48 @@ public class SkierServlet extends HttpServlet {
                 return false;
             }
         }
-        else {
-            return false;
-        }
         if (paramsSupplied.containsKey("lift_id")){
             if (Integer.parseInt(request.getParameter("lift_id")) > 60){
                 System.out.println("lift id wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         if (paramsSupplied.containsKey("minute")){
             if (Integer.parseInt(request.getParameter("minute")) > 420){
                 System.out.println("minute wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         if (paramsSupplied.containsKey("wait")){
             if (Integer.parseInt(request.getParameter("wait")) > 10){
                 System.out.println("wait wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         if (paramsSupplied.containsKey("resort_id")){
             if (Integer.parseInt(request.getParameter("resort_id")) > 4){
                 System.out.println("resort id wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         if (paramsSupplied.containsKey("day_id")){
             if (Integer.parseInt(request.getParameter("day_id")) > 30){
                 System.out.println("day id wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         if (paramsSupplied.containsKey("season_id")){
             if (Integer.parseInt(request.getParameter("season_id")) > 4){
                 System.out.println("season id wrong");
                 return false;
             }
         }
-        else {
-            return false;
-        }
+
         return true;
     }
 }
