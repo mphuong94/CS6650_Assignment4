@@ -9,7 +9,6 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.exceptions.JedisException;
-import util.LiftInfo;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

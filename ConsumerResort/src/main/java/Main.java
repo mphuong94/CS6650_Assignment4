@@ -1,12 +1,19 @@
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
+import io.vavr.control.Try;
 import org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 public class Main {
     private static String rabbitHost = "35.88.165.207";
@@ -58,18 +65,23 @@ public class Main {
         factory.setPassword(password);
         poolConfig.setMaxTotal(1000);
         pool = new JedisPool(poolConfig,redisHost, redisPort);
+        RetryConfig config = RetryConfig.custom()
+                .maxAttempts(10)
+                .waitDuration(Duration.of(5, SECONDS))
+                .build();
+        RetryRegistry registry = RetryRegistry.of(config);
+        Retry retry = registry.retry("SkierRedis", config);
 
         try {
             Connection newConnection = factory.newConnection();
-            ConsumerThread[] consumers = new ConsumerThread[numThread];
+            Runnable[] tasks = new Runnable[numThread];
             for (int i = 0; i < numThread; i++) {
-                consumers[i] = new ConsumerThread(pool, newConnection);
+                tasks[i] = new ConsumerThread(pool, newConnection);
+                Retry.decorateRunnable(retry,tasks[i]);
             }
 
-            Thread[] threads = new Thread[numThread];
             for (int i = 0; i < numThread; i++) {
-                threads[i] = new Thread(consumers[i]);
-                threads[i].start();
+                Try.run(tasks[i]::run);
             }
         } catch (Exception e) {
             e.printStackTrace();

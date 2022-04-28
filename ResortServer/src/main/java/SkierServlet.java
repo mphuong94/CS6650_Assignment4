@@ -54,11 +54,9 @@ public class SkierServlet extends HttpServlet {
             config.setMaxIdle(200);
             pool = new GenericObjectPool<>(new ChannelFactory(newConn), config);
             Channel initChannel = newConn.createChannel();
-            initChannel.exchangeDeclare("postRequest", "fanout");
-            initChannel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
-            initChannel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
-            initChannel.queueBind(QUEUE_NAME_RESORT, EXCHANGE_NAME, "");
-            initChannel.queueBind(QUEUE_NAME_SKIER, EXCHANGE_NAME, "");
+            initChannel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+            bindQueueToExchange(initChannel,QUEUE_NAME_SKIER,EXCHANGE_NAME);
+            bindQueueToExchange(initChannel,QUEUE_NAME_RESORT,EXCHANGE_NAME);
             initChannel.close();
 
             jedisPoolConfig.setMaxTotal(1000);
@@ -211,11 +209,6 @@ public class SkierServlet extends HttpServlet {
             try {
                 Channel channel = pool.borrowObject();
                 String jsonString = gson.toJson(newInfo);
-//                channel.queueDeclare(QUEUE_NAME_SKIER, false, false, false, null);
-//                channel.queueDeclare(QUEUE_NAME_RESORT, false, false, false, null);
-//                channel.basicPublish("", QUEUE_NAME_SKIER, null, jsonString.getBytes("UTF-8"));
-//                channel.basicPublish("", QUEUE_NAME_RESORT, null, jsonString.getBytes("UTF-8"));
-
                 channel.basicPublish(EXCHANGE_NAME, "", null, jsonString.getBytes("UTF-8"));
                 pool.returnObject(channel);
                 response.setStatus(HttpServletResponse.SC_CREATED);
@@ -287,5 +280,10 @@ public class SkierServlet extends HttpServlet {
         }
 
         return true;
+    }
+
+    private void bindQueueToExchange(Channel channel, String queueName,String exchangeName) throws IOException {
+        channel.queueDeclare(queueName, false, false, false, null);
+        channel.queueBind(queueName, exchangeName, "");
     }
 }

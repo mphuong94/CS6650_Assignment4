@@ -1,5 +1,3 @@
-package util;
-
 public class LiftInfo {
     private Integer skierId;
     private Integer liftId;
