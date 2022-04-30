@@ -1,1 +1,1 @@
-java -jar ConsumerSkier.jar --numThread 32 --urlRabbit 34.210.78.52 --urlRedis 18.236.213.5
+java -jar ConsumerSkier.jar --numThread 32 --urlRabbit 34.217.149.241 --urlRedis 50.112.201.131

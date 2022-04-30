@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 @WebServlet(name = "ResortServlet", value = "/ResortServlet")
 public class ResortServlet extends HttpServlet {
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String redisHost = "34.221.248.240";
+    private static final String REDIS_HOST = "50.112.201.131";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
@@ -20,7 +20,7 @@ public class ResortServlet extends HttpServlet {
     @Override
     public void init() {
         jedisPoolConfig.setMaxTotal(1000);
-        jedisPool = new JedisPool(jedisPoolConfig,redisHost, redisPort);
+        jedisPool = new JedisPool(jedisPoolConfig,REDIS_HOST, redisPort);
     }
 
 

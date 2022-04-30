@@ -32,10 +32,10 @@ public class SkierServlet extends HttpServlet {
     private static String QUEUE_NAME_SKIER = "skier";
     private static String QUEUE_NAME_RESORT = "resort";
     final static Logger logger = Logger.getLogger(SkierServlet.class.getName());
-    private static final String RABBIT_HOST = "34.210.78.52";
+    private static final String RABBIT_HOST = "34.217.149.241";
     private static final String userName = "guest1";
     private static final String password = "guest1";
-    private static final String REDIS_HOST = "18.236.213.5";
+    private static final String REDIS_HOST = "50.112.201.131";
     private static final Integer redisPort = 6379;
     private static JedisPool jedisPool = null;
     static JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
